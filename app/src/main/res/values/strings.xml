@@ -1,0 +1,116 @@
+
+<resources>
+    <string name="app_name">BYTE Base</string>
+
+    <!-- Información general -->
+    <string name="nombre_app">BYTE Base</string>
+    <string name="eslogan">Aprende Programación y Bases de Datos</string>
+
+    <!-- Inicio de sesión -->
+    <string name="bienvenida">¡Bienvenido!</string>
+    <string name="iniciar_sesion">Iniciar sesión</string>
+    <string name="correo">Correo electrónico</string>
+    <string name="contrasena">Contraseña</string>
+    <string name="crear_cuenta">Crear una cuenta</string>
+    <string name="sin_cuenta">¿Todavía no tienes una cuenta?</string>
+    <string name="mostrar">Mostrar</string>
+    <string name="ocultar">Ocultar</string>
+    <string name="iniciar_sesion_descripcion">Inicia sesión para continuar</string>
+
+    <!-- Registro -->
+    <string name="registro_titulo">Crear cuenta</string>
+    <string name="registro_descripcion">Completa tus datos para registrarte</string>
+    <string name="nombre_completo">Nombre completo</string>
+    <string name="confirmar_contrasena">Confirmar contraseña</string>
+    <string name="registrarme">Registrarme</string>
+    <string name="ya_tengo_cuenta">Ya tengo una cuenta</string>
+
+    <!-- Inicio -->
+    <string name="saludo_inicio">¡Hola, bienvenido!</string>
+    <string name="explora_plataforma">Explora la plataforma</string>
+    <string name="recursos_educativos">Recursos educativos</string>
+    <string name="recursos_recientes">Recursos recientes</string>
+    <string name="consultar_recursos">Consultar recursos</string>
+    <string name="cerrar_sesion">Cerrar sesión</string>
+    <string name="busca_recursos">Buscar recursos...</string>
+    <string name="materias">Materias</string>
+    <string name="programacion">Programación</string>
+    <string name="bases_datos">Bases de datos</string>
+    <string name="perfil">Perfil</string>
+    <string name="inicio">Inicio</string>
+    <string name="recursos">Recursos</string>
+    <string name="asesorias">Asesorías</string>
+
+    <!-- Pantalla de recursos -->
+    <string name="titulo_recursos">Recursos educativos</string>
+    <string name="descripcion_recursos">Encuentra materiales para complementar tu aprendizaje</string>
+    <string name="buscar_recurso">Buscar un recurso</string>
+    <string name="filtrar_por_materia">Filtrar por materia</string>
+    <string name="todas_las_materias">Todas las materias</string>
+    <string name="categoria">Categoría</string>
+    <string name="todos">Todos</string>
+    <string name="apuntes">Apuntes</string>
+    <string name="ejercicios">Ejercicios</string>
+    <string name="guias">Guías</string>
+    <string name="proyectos">Proyectos</string>
+    <string name="consultar">Consultar</string>
+    <string name="descargar">Descargar</string>
+    <string name="sin_recursos">No se encontraron recursos</string>
+    <string name="volver_inicio">Volver al inicio</string>
+
+    <!-- Recursos de ejemplo -->
+    <string name="recurso_java">Introducción a Java</string>
+    <string name="recurso_bd">Fundamentos de bases de datos</string>
+    <string name="recurso_estructuras">Estructuras de datos</string>
+
+    <!-- Validaciones y mensajes -->
+    <string name="error_campos_vacios">Completa todos los campos.</string>
+    <string name="error_correo">Ingresa un correo válido.</string>
+    <string name="error_credenciales">Correo o contraseña incorrectos.</string>
+    <string name="error_contrasena_corta">La contraseña debe tener al menos 6 caracteres.</string>
+    <string name="error_contrasenas_distintas">Las contraseñas no coinciden.</string>
+    <string name="registro_exitoso">Registro completado correctamente.</string>
+    <string name="mensaje_bienvenida">Bienvenido a BYTE Base.</string>
+
+    <!-- Botones generales -->
+    <string name="aceptar">Aceptar</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="guardar">Guardar</string>
+    <string name="volver">Volver</string>
+
+    <!-- Registro -->
+    <string name="registro_eslogan">Forma parte de nuestra comunidad</string>
+    <string name="pregunta_tienes_cuenta">¿Ya tienes una cuenta?</string>
+    <string name="pie_registro">BYTE Base • Aprende y comparte</string>
+
+    <!-- Pantalla de inicio -->
+    <string name="tu_espacio_aprender">Tu espacio para aprender</string>
+    <string name="salir">Salir</string>
+    <string name="que_aprender_hoy">¿Qué te gustaría aprender hoy?</string>
+    <string name="buscar_recursos_educativos">Buscar recursos educativos...</string>
+    <string name="consulta_materiales">Consulta materiales para reforzar tus conocimientos.</string>
+    <string name="explorar_recursos">Explorar recursos →</string>
+    <string name="areas_aprendizaje">Áreas de aprendizaje</string>
+
+    <!-- Descripciones de materias -->
+    <string name="descripcion_programacion">Código y desarrollo</string>
+    <string name="descripcion_bases_datos">Consultas y diseño</string>
+
+    <!-- Descripciones de recursos -->
+    <string name="descripcion_recurso_java">Conceptos básicos y primeros pasos.</string>
+    <string name="descripcion_recurso_bd">Conceptos esenciales de almacenamiento.</string>
+    <string name="descripcion_recurso_estructuras">Listas, pilas y colas.</string>
+
+    <!-- Pantalla de recursos -->
+    <string name="materiales_disponibles">Materiales disponibles</string>
+    <string name="buscar_material">Buscar recurso por nombre...</string>
+    <string name="recurso_poo">Programación orientada a objetos</string>
+    <string name="sin_resultados">No se encontraron recursos.</string>
+    <string name="cantidad_recursos">Recursos disponibles: %1$d</string>
+
+    <string name="registrando">Creando tu cuenta...</string>
+    <string name="error_inicio_sesion">Ocurrió un error al iniciar sesión. Inténtalo nuevamente.</string>
+    <string name="iniciando_sesion">Verificando tus datos...</string>
+    <string name="error_correo_registrado">Este correo ya está registrado.</string>
+    <string name="error_registro">Ocurrió un error al registrar la cuenta. Inténtalo nuevamente.</string>
+</resources>
