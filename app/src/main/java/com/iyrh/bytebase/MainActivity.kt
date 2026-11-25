@@ -1,21 +1,55 @@
-
 package com.iyrh.bytebase
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
-
 import com.iyrh.bytebase.data.local.AppDatabase
 import com.iyrh.bytebase.data.local.entities.Materia
 import com.iyrh.bytebase.data.local.entities.Categoria
+import com.iyrh.bytebase.data.local.entities.Usuario
 import com.iyrh.bytebase.data.repository.UsuarioRepository
 import com.iyrh.bytebase.data.repository.RecursoRepository
 import com.iyrh.bytebase.ui.theme.ByteBaseTheme
-
-import com.iyrh.bytebase.data.local.entities.Usuario
 import com.iyrh.bytebase.ui.PantallaPublicar
+import kotlinx.coroutines.flow.first
+import com.iyrh.bytebase.ui.theme.rememberTemaOscuroPorLuz
+
+// Permite guardar y recuperar el usuario al girar el dispositivo.
+private val usuarioSaver = mapSaver<Usuario?>(
+    save = { usuario ->
+        if (usuario == null) {
+            mapOf("vacio" to true)
+        } else {
+            mapOf(
+                "vacio" to false,
+                "id" to usuario.id,
+                "nombre" to usuario.nombre,
+                "correo" to usuario.correo,
+                "hash" to usuario.contrasenaHash,
+                "salt" to usuario.contrasenaSalt,
+                "foto" to (usuario.fotoPerfil ?: "")
+            )
+        }
+    },
+    restore = { datos ->
+        if (datos["vacio"] == true) {
+            null
+        } else {
+            Usuario(
+                id = datos["id"] as Int,
+                nombre = datos["nombre"] as String,
+                correo = datos["correo"] as String,
+                contrasenaHash = datos["hash"] as String,
+                contrasenaSalt = datos["salt"] as String,
+                fotoPerfil = (datos["foto"] as String).ifEmpty { null }
+            )
+        }
+    }
+)
 
 class MainActivity : ComponentActivity() {
 
@@ -23,7 +57,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            ByteBaseTheme {
+
+            // Detectar la iluminación ambiental
+            val modoOscuro = rememberTemaOscuroPorLuz()
+
+            // Aplicar el tema correspondiente
+            ByteBaseTheme(darkTheme = modoOscuro) {
 
                 val context = LocalContext.current
 
@@ -45,10 +84,14 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Insertar materias y categorías iniciales
+                // Registrar materias y categorías iniciales
                 LaunchedEffect(recursoRepository) {
 
-                    if (recursoRepository.obtenerMaterias().isEmpty()) {
+                    val materiasActuales = recursoRepository
+                        .observarMaterias()
+                        .first()
+
+                    if (materiasActuales.isEmpty()) {
                         val materiasIniciales = listOf(
                             "Programación",
                             "Bases de Datos",
@@ -57,14 +100,18 @@ class MainActivity : ComponentActivity() {
                             "Matemáticas"
                         )
 
-                        materiasIniciales.forEach {
+                        materiasIniciales.forEach { nombre ->
                             recursoRepository.registrarMateria(
-                                Materia(nombre = it)
+                                Materia(nombre = nombre)
                             )
                         }
                     }
 
-                    if (recursoRepository.obtenerCategorias().isEmpty()) {
+                    val categoriasActuales = recursoRepository
+                        .observarCategorias()
+                        .first()
+
+                    if (categoriasActuales.isEmpty()) {
                         val categoriasIniciales = listOf(
                             "Apuntes",
                             "Ejercicios",
@@ -73,19 +120,23 @@ class MainActivity : ComponentActivity() {
                             "Proyectos"
                         )
 
-                        categoriasIniciales.forEach {
+                        categoriasIniciales.forEach { nombre ->
                             recursoRepository.registrarCategoria(
-                                Categoria(nombre = it)
+                                Categoria(nombre = nombre)
                             )
                         }
                     }
                 }
 
-                var usuarioActual by remember {
+                // Usuario conservado al girar el dispositivo
+                var usuarioActual by rememberSaveable(
+                    stateSaver = usuarioSaver
+                ) {
                     mutableStateOf<Usuario?>(null)
                 }
 
-                var pantalla by remember {
+                // Pantalla actual
+                var pantalla by rememberSaveable {
                     mutableStateOf("login")
                 }
 
@@ -93,7 +144,9 @@ class MainActivity : ComponentActivity() {
 
                     "login" -> PantallaLogin(
                         repositorio = usuarioRepository,
-                        irRegistro = { pantalla = "registro" },
+                        irRegistro = {
+                            pantalla = "registro"
+                        },
                         entrar = { usuario ->
                             usuarioActual = usuario
                             pantalla = "inicio"
@@ -102,14 +155,22 @@ class MainActivity : ComponentActivity() {
 
                     "registro" -> PantallaRegistro(
                         repositorio = usuarioRepository,
-                        volverLogin = { pantalla = "login" }
+                        volverLogin = {
+                            pantalla = "login"
+                        }
                     )
 
                     "inicio" -> PantallaInicio(
                         repositorio = recursoRepository,
-                        irRecursos = { pantalla = "recursos" },
-                        irPublicar = { pantalla = "publicar" },
-                        irPerfil = { pantalla = "perfil" },
+                        irRecursos = {
+                            pantalla = "recursos"
+                        },
+                        irPublicar = {
+                            pantalla = "publicar"
+                        },
+                        irPerfil = {
+                            pantalla = "perfil"
+                        },
                         cerrarSesion = {
                             usuarioActual = null
                             pantalla = "login"
@@ -118,7 +179,9 @@ class MainActivity : ComponentActivity() {
 
                     "recursos" -> PantallaRecursos(
                         repositorio = recursoRepository,
-                        volverInicio = { pantalla = "inicio" }
+                        volverInicio = {
+                            pantalla = "inicio"
+                        }
                     )
 
                     "publicar" -> {
@@ -126,7 +189,9 @@ class MainActivity : ComponentActivity() {
                             PantallaPublicar(
                                 repositorio = recursoRepository,
                                 usuarioId = usuario.id,
-                                volverInicio = { pantalla = "inicio" }
+                                volverInicio = {
+                                    pantalla = "inicio"
+                                }
                             )
                         }
                     }

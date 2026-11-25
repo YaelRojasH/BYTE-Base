@@ -19,10 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.iyrh.bytebase.data.local.entities.Materia
-import com.iyrh.bytebase.data.local.entities.Recurso
 import com.iyrh.bytebase.data.repository.RecursoRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 
 @Composable
 fun PantallaInicio(
@@ -36,43 +36,23 @@ fun PantallaInicio(
     var busqueda by remember { mutableStateOf("") }
     var seccionSeleccionada by remember { mutableStateOf("inicio") }
 
-    // Datos reales de SQLite
-    var recursosRecientes by remember {
-        mutableStateOf<List<Recurso>>(emptyList())
-    }
+    // Observar los recursos desde Room mediante Flow.
+    val recursosRecientes by remember(repositorio) {
+        repositorio.observarRecursos()
+            .map { recursos -> recursos.take(3) }
+            .catch { emit(emptyList()) }
+    }.collectAsState(initial = emptyList())
 
-    var materias by remember {
-        mutableStateOf<List<Materia>>(emptyList())
-    }
-
-    var cargandoRecursos by remember {
-        mutableStateOf(true)
-    }
-
-    var errorCarga by remember {
-        mutableStateOf(false)
-    }
+    // Observar las materias desde Room mediante Flow.
+    val materias by remember(repositorio) {
+        repositorio.observarMaterias()
+            .catch { emit(emptyList()) }
+    }.collectAsState(initial = emptyList())
 
     // Animación inicial
     LaunchedEffect(Unit) {
         delay(150)
         mostrarContenido = true
-    }
-
-    // Cargar recursos y materias desde SQLite
-    LaunchedEffect(repositorio) {
-        cargandoRecursos = true
-        errorCarga = false
-
-        try {
-            recursosRecientes = repositorio.obtenerRecursos().take(3)
-            materias = repositorio.obtenerMaterias()
-        } catch (e: Exception) {
-            errorCarga = true
-            recursosRecientes = emptyList()
-        } finally {
-            cargandoRecursos = false
-        }
     }
 
     Scaffold(
@@ -392,7 +372,7 @@ fun PantallaInicio(
 
                     Spacer(modifier = Modifier.height(26.dp))
 
-                    // RECURSOS RECIENTES REALES
+                    // RECURSOS RECIENTES
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -411,100 +391,54 @@ fun PantallaInicio(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    when {
-                        cargandoRecursos -> {
-                            Box(
+                    if (recursosRecientes.isEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(25.dp),
-                                contentAlignment = Alignment.Center
+                                    .padding(22.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                CircularProgressIndicator()
-                            }
-                        }
+                                Text("📂", fontSize = 35.sp)
 
-                        errorCarga -> {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(20.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        "No se pudieron cargar los recursos",
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                Spacer(modifier = Modifier.height(10.dp))
 
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    TextButton(
-                                        onClick = {
-                                            // Volver a abrir Inicio para cargar los datos
-                                            // nuevamente al entrar a esta pantalla.
-                                            irRecursos()
-                                        }
-                                    ) {
-                                        Text("Ir a recursos")
-                                    }
-                                }
-                            }
-                        }
-
-                        recursosRecientes.isEmpty() -> {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(22.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text("📂", fontSize = 35.sp)
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    Text(
-                                        text = "Todavía no hay recursos",
-                                        fontWeight = FontWeight.Bold
-                                    )
-
-                                    Spacer(modifier = Modifier.height(5.dp))
-
-                                    Text(
-                                        text = "Cuando se publiquen materiales, aparecerán aquí.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 13.sp
-                                    )
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    TextButton(onClick = irPublicar) {
-                                        Text("Publicar el primer recurso")
-                                    }
-                                }
-                            }
-                        }
-
-                        else -> {
-                            recursosRecientes.forEach { recurso ->
-
-                                val materia = materias.find {
-                                    it.id == recurso.materiaId
-                                }
-
-                                RecursoInicio(
-                                    titulo = recurso.titulo,
-                                    materia = materia?.nombre ?: "Materia",
-                                    descripcion = recurso.descripcion,
-                                    onClick = irRecursos
+                                Text(
+                                    text = "Todavía no hay recursos",
+                                    fontWeight = FontWeight.Bold
                                 )
+
+                                Spacer(modifier = Modifier.height(5.dp))
+
+                                Text(
+                                    text = "Cuando se publiquen materiales, aparecerán aquí.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 13.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                TextButton(onClick = irPublicar) {
+                                    Text("Publicar el primer recurso")
+                                }
                             }
+                        }
+                    } else {
+                        recursosRecientes.forEach { recurso ->
+
+                            val materia = materias.find {
+                                it.id == recurso.materiaId
+                            }
+
+                            RecursoInicio(
+                                titulo = recurso.titulo,
+                                materia = materia?.nombre ?: "Materia",
+                                descripcion = recurso.descripcion,
+                                onClick = irRecursos
+                            )
                         }
                     }
 

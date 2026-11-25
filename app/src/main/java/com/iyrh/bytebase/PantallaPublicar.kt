@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.flow.catch
 
 @Composable
 fun PantallaPublicar(
@@ -39,11 +41,20 @@ fun PantallaPublicar(
     val azul = MaterialTheme.colorScheme.primary
     val fondo = MaterialTheme.colorScheme.background
 
-    var titulo by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
+    var titulo by rememberSaveable { mutableStateOf("") }
+    var descripcion by rememberSaveable { mutableStateOf("") }
 
-    var materias by remember { mutableStateOf(emptyList<Materia>()) }
-    var categorias by remember { mutableStateOf(emptyList<Categoria>()) }
+    // Observar materias desde Room
+    val materias by remember(repositorio) {
+        repositorio.observarMaterias()
+            .catch { emit(emptyList()) }
+    }.collectAsState(initial = emptyList())
+
+   // Observar categorías desde Room
+    val categorias by remember(repositorio) {
+        repositorio.observarCategorias()
+            .catch { emit(emptyList()) }
+    }.collectAsState(initial = emptyList())
 
     var materiaSeleccionada by remember { mutableStateOf<Materia?>(null) }
     var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
@@ -56,11 +67,6 @@ fun PantallaPublicar(
 
     var mensaje by remember { mutableStateOf("") }
     var cargando by remember { mutableStateOf(false) }
-
-    LaunchedEffect(repositorio) {
-        materias = repositorio.obtenerMaterias()
-        categorias = repositorio.obtenerCategorias()
-    }
 
     val selectorPDF = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()

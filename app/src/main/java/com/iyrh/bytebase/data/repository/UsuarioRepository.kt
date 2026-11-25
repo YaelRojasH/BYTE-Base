@@ -1,13 +1,16 @@
+
 package com.iyrh.bytebase.data.repository
 
 import com.iyrh.bytebase.data.local.dao.UsuarioDao
 import com.iyrh.bytebase.data.local.entities.Usuario
 import com.iyrh.bytebase.security.PasswordHasher
+import kotlinx.coroutines.flow.Flow
 
 class UsuarioRepository(
     private val usuarioDao: UsuarioDao
 ) {
 
+    // CREATE: Registrar usuario
     suspend fun registrarUsuario(
         nombre: String,
         correo: String,
@@ -35,6 +38,7 @@ class UsuarioRepository(
         return true
     }
 
+    // READ: Iniciar sesión
     suspend fun iniciarSesion(
         correo: String,
         contrasena: String
@@ -52,7 +56,12 @@ class UsuarioRepository(
         return if (contrasenaCorrecta) usuario else null
     }
 
-    // Actualizar el nombre del usuario
+    // READ: Observar usuarios
+    fun observarUsuarios(): Flow<List<Usuario>> {
+        return usuarioDao.observarUsuarios()
+    }
+
+    // UPDATE: Actualizar nombre
     suspend fun actualizarNombre(
         usuarioId: Int,
         nuevoNombre: String
@@ -72,7 +81,7 @@ class UsuarioRepository(
         return true
     }
 
-    // Actualizar la fotografía del usuario
+    // UPDATE: Actualizar fotografía
     suspend fun actualizarFotoPerfil(
         usuarioId: Int,
         foto: String?
@@ -81,5 +90,10 @@ class UsuarioRepository(
             usuarioId = usuarioId,
             foto = foto
         )
+    }
+
+    // DELETE: Eliminar usuario
+    suspend fun eliminarUsuario(usuarioId: Int) {
+        usuarioDao.eliminarUsuario(usuarioId)
     }
 }

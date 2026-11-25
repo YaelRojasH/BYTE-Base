@@ -1,3 +1,4 @@
+
 package com.iyrh.bytebase
 
 import androidx.compose.foundation.background
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,37 +37,38 @@ fun PantallaRecursos(
     repositorio: RecursoRepository,
     volverInicio: () -> Unit
 ) {
-    var busqueda by remember { mutableStateOf("") }
-    var recursos by remember { mutableStateOf(emptyList<Recurso>()) }
-    var materias by remember { mutableStateOf(emptyList<Materia>()) }
-    var categorias by remember { mutableStateOf(emptyList<Categoria>()) }
+    // ESTADOS DE BÚSQUEDA Y FILTRO
+    var busqueda by rememberSaveable { mutableStateOf("") }
+    var materiaFiltro by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    var materiaFiltro by remember { mutableStateOf<Int?>(null) }
-    var cargando by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf(false) }
-
-    LaunchedEffect(repositorio) {
-        try {
-            materias = repositorio.obtenerMaterias()
-            categorias = repositorio.obtenerCategorias()
-        } catch (e: Exception) {
-            error = true
-        }
+    // OBSERVAR RECURSOS EN TIEMPO REAL
+    val flujoRecursos = remember(repositorio, busqueda) {
+        repositorio.buscarRecursos(busqueda.trim())
     }
 
-    LaunchedEffect(busqueda, repositorio) {
-        cargando = true
-        error = false
+    val recursos by flujoRecursos.collectAsState(
+        initial = emptyList()
+    )
 
-        try {
-            recursos = repositorio.buscarRecursos(busqueda.trim())
-        } catch (e: Exception) {
-            error = true
-        } finally {
-            cargando = false
-        }
+    // OBSERVAR MATERIAS
+    val flujoMaterias = remember(repositorio) {
+        repositorio.observarMaterias()
     }
 
+    val materias by flujoMaterias.collectAsState(
+        initial = emptyList()
+    )
+
+    // OBSERVAR CATEGORÍAS
+    val flujoCategorias = remember(repositorio) {
+        repositorio.observarCategorias()
+    }
+
+    val categorias by flujoCategorias.collectAsState(
+        initial = emptyList()
+    )
+
+    // APLICAR FILTRO POR MATERIA
     val recursosFiltrados = remember(recursos, materiaFiltro) {
         if (materiaFiltro == null) {
             recursos
@@ -301,111 +304,74 @@ fun PantallaRecursos(
             Spacer(modifier = Modifier.height(10.dp))
 
             // CONTENIDO
-            when {
-                cargando -> {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+            if (recursosFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "Cargando biblioteca...",
-                                color = colorSecundario
-                            )
+                        Surface(
+                            modifier = Modifier.size(75.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(35.dp),
+                                    tint = colorSecundario
+                                )
+                            }
                         }
-                    }
-                }
 
-                error -> {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         Text(
-                            text = "No se pudieron cargar los recursos.",
-                            color = MaterialTheme.colorScheme.error
+                            text = "No hay recursos disponibles",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        Text(
+                            text = "Prueba otra búsqueda o selecciona otra materia.",
+                            color = colorSecundario,
+                            fontSize = 12.sp
                         )
                     }
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(
+                        items = recursosFiltrados,
+                        key = { it.id }
+                    ) { recurso ->
 
-                recursosFiltrados.isEmpty() -> {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Surface(
-                                modifier = Modifier.size(75.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Description,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(35.dp),
-                                        tint = colorSecundario
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Text(
-                                text = "No hay recursos disponibles",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-
-                            Spacer(modifier = Modifier.height(5.dp))
-
-                            Text(
-                                text = "Prueba otra búsqueda o selecciona otra materia.",
-                                color = colorSecundario,
-                                fontSize = 12.sp
-                            )
+                        val materia = materias.firstOrNull {
+                            it.id == recurso.materiaId
                         }
-                    }
-                }
 
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        contentPadding = PaddingValues(bottom = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(
-                            items = recursosFiltrados,
-                            key = { it.id }
-                        ) { recurso ->
-
-                            val materia = materias.firstOrNull {
-                                it.id == recurso.materiaId
-                            }
-
-                            val categoria = categorias.firstOrNull {
-                                it.id == recurso.categoriaId
-                            }
-
-                            TarjetaRecurso(
-
-                                recurso = recurso,
-                                materia = materia?.nombre ?: "Sin materia",
-                                categoria = categoria?.nombre ?: "Sin categoría"
-                            )
+                        val categoria = categorias.firstOrNull {
+                            it.id == recurso.categoriaId
                         }
+
+                        TarjetaRecurso(
+                            recurso = recurso,
+                            materia = materia?.nombre ?: "Sin materia",
+                            categoria = categoria?.nombre ?: "Sin categoría"
+                        )
                     }
                 }
             }
@@ -460,7 +426,7 @@ fun TarjetaRecurso(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
-            // Icono y título
+            // ICONO Y TÍTULO
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -492,14 +458,14 @@ fun TarjetaRecurso(
 
             HorizontalDivider(color = Color.LightGray)
 
-            // Descripción
+            // DESCRIPCIÓN
             Text(
                 text = recurso.descripcion,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.DarkGray
             )
 
-            // Materia y categoría
+            // MATERIA Y CATEGORÍA
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -507,7 +473,7 @@ fun TarjetaRecurso(
                 EtiquetaRecurso(texto = categoria)
             }
 
-            // Botón para abrir PDF
+            // BOTÓN PARA ABRIR PDF
             Button(
                 onClick = {
                     abrirPDF(context, recurso.uriArchivo)

@@ -1,5 +1,12 @@
 package com.iyrh.bytebase
 
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,26 +25,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.iyrh.bytebase.data.local.entities.Recurso
-import com.iyrh.bytebase.data.local.entities.Usuario
-import com.iyrh.bytebase.data.repository.RecursoRepository
-import com.iyrh.bytebase.data.repository.UsuarioRepository
-import kotlinx.coroutines.launch
-import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.iyrh.bytebase.data.local.entities.Usuario
+import com.iyrh.bytebase.data.repository.RecursoRepository
+import com.iyrh.bytebase.data.repository.UsuarioRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
 fun PantallaPerfil(
@@ -50,23 +51,83 @@ fun PantallaPerfil(
 ) {
     val azul = Color(0xFF1A73E8)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
     var mensajeError by remember { mutableStateOf("") }
 
-    // Estados de las publicaciones
-    var misRecursos by remember {
-        mutableStateOf(emptyList<Recurso>())
+    // Estados para eliminar la cuenta
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    var eliminandoCuenta by remember { mutableStateOf(false) }
+    var errorEliminarCuenta by remember { mutableStateOf("") }
+
+    // Eliminar la cuenta y los archivos asociados
+    fun eliminarCuenta() {
+        scope.launch {
+            eliminandoCuenta = true
+            errorEliminarCuenta = ""
+
+            try {
+                // Obtener los recursos antes de eliminar el usuario.
+                val recursosUsuario =
+                    repositorio.obtenerRecursosDeUsuario(usuario.id)
+
+                // Room elimina también los registros de recursos por CASCADE.
+                usuarioRepository.eliminarUsuario(usuario.id)
+
+                // Eliminar únicamente archivos dentro del almacenamiento privado de la app.
+                withContext(Dispatchers.IO) {
+                    val directorioPrivado = context.filesDir.canonicalFile
+
+                    recursosUsuario.forEach { recurso ->
+                        try {
+                            val archivo = File(recurso.uriArchivo).canonicalFile
+                            val rutaPermitida =
+                                archivo.path.startsWith(
+                                    directorioPrivado.path + File.separator
+                                )
+
+                            if (rutaPermitida && archivo.isFile) {
+                                archivo.delete()
+                            }
+                        } catch (_: Exception) {
+                            // Continuar aunque un archivo no pueda eliminarse.
+                        }
+                    }
+                }
+
+                // Liberar el permiso persistente de la fotografía, si existe.
+                usuario.fotoPerfil?.let { foto ->
+                    try {
+                        context.contentResolver.releasePersistableUriPermission(
+                            Uri.parse(foto),
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (_: Exception) {
+                        // El permiso pudo haberse liberado anteriormente.
+                    }
+                }
+
+                mostrarDialogoEliminar = false
+                cerrarSesion()
+            } catch (e: Exception) {
+                errorEliminarCuenta =
+                    "No se pudo eliminar la cuenta. Inténtalo nuevamente."
+            } finally {
+                eliminandoCuenta = false
+            }
+        }
     }
 
-    var cargando by remember { mutableStateOf(true) }
-    var errorCarga by remember { mutableStateOf(false) }
+    // Observar las publicaciones del usuario mediante Flow
+    val misRecursos by remember(repositorio, usuario.id) {
+        repositorio.observarPorUsuario(usuario.id)
+            .catch { emit(emptyList()) }
+    }.collectAsState(initial = emptyList())
 
     // Estados para editar el perfil
     var mostrarDialogo by remember { mutableStateOf(false) }
     var nuevoNombre by remember { mutableStateOf(usuario.nombre) }
     var guardando by remember { mutableStateOf(false) }
-
-
-    val context = LocalContext.current
 
     // Selector de fotografía
     val selectorImagen = rememberLauncherForActivityResult(
@@ -76,7 +137,6 @@ fun PantallaPerfil(
         uri?.let {
             scope.launch {
                 try {
-                    // Conservar el permiso para acceder a la imagen
                     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
 
                     context.contentResolver.takePersistableUriPermission(
@@ -84,7 +144,6 @@ fun PantallaPerfil(
                         flags
                     )
 
-                    // Guardar la fotografía en la base de datos
                     usuarioRepository.actualizarFotoPerfil(
                         usuarioId = usuario.id,
                         foto = it.toString()
@@ -98,20 +157,6 @@ fun PantallaPerfil(
                     mensajeError = "No se pudo guardar la fotografía."
                 }
             }
-        }
-    }
-
-    // Cargar publicaciones del usuario
-    LaunchedEffect(usuario.id) {
-        cargando = true
-        errorCarga = false
-
-        try {
-            misRecursos = repositorio.obtenerPorUsuario(usuario.id)
-        } catch (e: Exception) {
-            errorCarga = true
-        } finally {
-            cargando = false
         }
     }
 
@@ -261,7 +306,8 @@ fun PantallaPerfil(
                                     bitmap = null
 
                                 } catch (e: Exception) {
-                                    mensajeError = "No se pudo eliminar la fotografía."
+                                    mensajeError =
+                                        "No se pudo eliminar la fotografía."
                                 }
                             }
                         }
@@ -412,11 +458,7 @@ fun PantallaPerfil(
                     Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
-                        text = if (cargando) {
-                            "Consultando publicaciones..."
-                        } else {
-                            "${misRecursos.size}"
-                        },
+                        text = "${misRecursos.size}",
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         color = azul
@@ -442,80 +484,57 @@ fun PantallaPerfil(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    when {
-                        cargando -> {
-                            Box(
+                    if (misRecursos.isEmpty()) {
+                        Text(
+                            text = "Todavía no has publicado recursos.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                    } else {
+                        misRecursos.take(3).forEach { recurso ->
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                contentAlignment = Alignment.Center
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-
-                        errorCarga -> {
-                            Text(
-                                text = "No se pudieron cargar tus publicaciones.",
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 13.sp
-                            )
-                        }
-
-                        misRecursos.isEmpty() -> {
-                            Text(
-                                text = "Todavía no has publicado recursos.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 13.sp
-                            )
-                        }
-
-                        else -> {
-                            misRecursos.take(3).forEach { recurso ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
                                 ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Description,
-                                            contentDescription = null,
-                                            tint = azul,
-                                            modifier = Modifier.padding(10.dp)
-                                        )
-                                    }
+                                    Icon(
+                                        Icons.Default.Description,
+                                        contentDescription = null,
+                                        tint = azul,
+                                        modifier = Modifier.padding(10.dp)
+                                    )
+                                }
 
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
 
-                                    Column(
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text(
-                                            text = recurso.titulo,
-                                            fontWeight = FontWeight.Medium
-                                        )
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = recurso.titulo,
+                                        fontWeight = FontWeight.Medium
+                                    )
 
-                                        Text(
-                                            text = recurso.nombreArchivo,
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    Text(
+                                        text = recurso.nombreArchivo,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
+                        }
 
-                            if (misRecursos.size > 3) {
-                                Text(
-                                    text = "Y ${misRecursos.size - 3} publicaciones más",
-                                    color = azul,
-                                    fontSize = 12.sp
-                                )
-                            }
+                        if (misRecursos.size > 3) {
+                            Text(
+                                text = "Y ${misRecursos.size - 3} publicaciones más",
+                                color = azul,
+                                fontSize = 12.sp
+                            )
                         }
                     }
                 }
@@ -562,6 +581,23 @@ fun PantallaPerfil(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text("Cerrar sesión")
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ELIMINAR CUENTA
+            TextButton(
+                onClick = {
+                    errorEliminarCuenta = ""
+                    mostrarDialogoEliminar = true
+                },
+                enabled = !eliminandoCuenta,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Eliminar cuenta",
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -638,7 +674,8 @@ fun PantallaPerfil(
                                         mensajeError = "Escribe un nombre válido."
                                     }
                                 } catch (e: Exception) {
-                                    mensajeError = "No se pudo actualizar el nombre."
+                                    mensajeError =
+                                        "No se pudo actualizar el nombre."
                                 } finally {
                                     guardando = false
                                 }
@@ -663,6 +700,69 @@ fun PantallaPerfil(
                     onClick = {
                         mostrarDialogo = false
                     }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+
+    // VENTANA PARA CONFIRMAR LA ELIMINACIÓN
+    if (mostrarDialogoEliminar) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!eliminandoCuenta) {
+                    mostrarDialogoEliminar = false
+                }
+            },
+            title = {
+                Text("Eliminar cuenta")
+            },
+            text = {
+                Column {
+                    Text("¿Estás seguro de que deseas eliminar tu cuenta?")
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Se eliminarán tus datos, tus publicaciones y los archivos PDF asociados. Esta acción no se puede deshacer.",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp
+                    )
+
+                    if (errorEliminarCuenta.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = errorEliminarCuenta,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { eliminarCuenta() },
+                    enabled = !eliminandoCuenta
+                ) {
+                    if (eliminandoCuenta) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "Eliminar definitivamente",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { mostrarDialogoEliminar = false },
+                    enabled = !eliminandoCuenta
                 ) {
                     Text("Cancelar")
                 }

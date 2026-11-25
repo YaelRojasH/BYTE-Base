@@ -1,7 +1,5 @@
-
 package com.iyrh.bytebase.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -48,12 +46,13 @@ private val DarkColorScheme = darkColorScheme(
     outline = Color(0xFF526783)
 )
 
-// Tema principal de la aplicación
+// Tema principal de BYTE Base
 @Composable
 fun ByteBaseTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
+
     val colorScheme = if (darkTheme) {
         DarkColorScheme
     } else {
