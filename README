@@ -1,0 +1,68 @@
+# 💙 BYTE Base
+
+### Aprende Programación y Bases de Datos
+
+**BYTE Base** es una aplicación móvil educativa desarrollada para apoyar el aprendizaje de los estudiantes del área de Tecnologías de la Información, especialmente en las materias relacionadas con **Programación y Bases de Datos**.
+
+El proyecto busca ofrecer un espacio donde los estudiantes puedan consultar, compartir y publicar recursos educativos, facilitando el acceso al conocimiento y fomentando el aprendizaje colaborativo.
+
+---
+
+## 🎯 Objetivo del proyecto
+
+Desarrollar una aplicación móvil que facilite el acceso a materiales educativos y promueva la colaboración entre estudiantes y docentes, proporcionando herramientas para compartir conocimientos y reforzar el aprendizaje.
+
+## ✨ Funcionalidades
+
+- 🔐 **Registro e inicio de sesión:** acceso mediante una cuenta de usuario.
+- 👤 **Perfil de usuario:** consulta y actualización de la información personal.
+- 📷 **Fotografía de perfil:** seleccionar, cambiar y eliminar una imagen desde el dispositivo.
+- 📚 **Recursos educativos:** consultar materiales de apoyo para el aprendizaje.
+- 📤 **Publicación de recursos:** compartir materiales educativos con otros usuarios.
+- 🔎 **Búsqueda de recursos:** facilitar la localización de materiales de estudio.
+- 🎓 **Asesorías:** espacio destinado a apoyar el aprendizaje mediante asesorías académicas.
+
+## 🛠️ Tecnologías utilizadas
+
+| Tecnología | Uso |
+|---|---|
+| Kotlin | Lenguaje principal de programación |
+| Android Studio | Entorno de desarrollo |
+| Jetpack Compose | Construcción de interfaces |
+| Room | Persistencia de datos locales |
+| Gradle | Administración y compilación del proyecto |
+| Git y GitHub | Control de versiones y almacenamiento del código |
+
+## 🎨 Diseño
+
+La interfaz de BYTE Base está diseñada siguiendo un estilo moderno y sencillo, tomando como referencia los principios de Material Design 3.
+
+Se utiliza una combinación de tonos azules y blancos para mantener una apariencia visual limpia, organizada y fácil de utilizar.
+
+## 📱 Plataforma
+
+- Sistema operativo: Android.
+- Tipo de aplicación: aplicación móvil educativa.
+- Público objetivo: estudiantes y docentes del área de Tecnologías de la Información.
+
+## 🏫 Contexto académico
+
+Proyecto desarrollado como parte de la formación académica en la **Universidad Tecnológica de Tula-Tepeji (UTTT)**.
+
+## 🚀 Estado del proyecto
+
+**En desarrollo.**
+
+BYTE Base continúa evolucionando mediante la implementación de funcionalidades, mejoras en la interfaz y correcciones para ofrecer una mejor experiencia de usuario.
+
+## 👨‍💻 Desarrollador
+
+**Yael Rojas**
+
+Proyecto académico individual.
+
+---
+
+<p align="center">
+  💙 <b>BYTE Base</b> — Aprende, comparte y desarrolla tus conocimientos.
+</p>
